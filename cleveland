@@ -53,3 +53,10 @@ def read_data_from_file(file_name):
     json_data = json.loads(data)
     return json_data
 
+# set up the database
+def set_up_database(database_name):
+    # set path, create conn and cur and return them
+    path = os.path.dirname(os.path.abspath(__file__))
+    conn = sqlite3.connect(path + "/" + database_name)
+    cur = conn.cursor()
+    return cur, conn
