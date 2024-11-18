@@ -41,3 +41,15 @@ def write_file(paintings):
     
     # returns nothing
     return None
+
+# read json data into list of dictionaries
+def read_data_from_file(file_name):
+    
+    # set path for file, open and read file contents, load in and return json file data
+    full_path = os.path.join(os.path.dirname(__file__), file_name)
+    f = open(full_path)
+    data = f.read()
+    f.close()
+    json_data = json.loads(data)
+    return json_data
+
