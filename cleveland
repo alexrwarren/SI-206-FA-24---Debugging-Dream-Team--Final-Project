@@ -101,3 +101,29 @@ def insert_paintings_into_Cleveland(paintings, cur, conn):
     # commit changes and return new_paintings
     conn.commit()
     return new_paintings
+
+def main():
+    paintings_lst = get_paintings() 
+    write_file(paintings_lst)
+    json_data = read_data_from_file("Cleveland_cache.json")
+    cur, conn = set_up_database("Cleveland.db")
+    create_Cleveland_table(json_data, cur, conn)
+    
+    cur.execute("SELECT COUNT(*) FROM Cleveland")
+    paintings_inserted = cur.fetchone()[0]
+    print("current painting count: " + str(paintings_inserted))
+    
+    
+    while paintings_inserted < 125:
+        batch_size = min(25, 125 - paintings_inserted)
+        batch_of_paintings = paintings_lst[paintings_inserted:paintings_inserted + batch_size]
+        new_paintings = insert_paintings_into_Cleveland(batch_of_paintings, cur, conn)
+        paintings_inserted += len(new_paintings)
+        print(f"{len(new_paintings)} paintings inserted, total inserted: {paintings_inserted}")
+    
+    if paintings_inserted == 125:
+        print("done!")
+        
+    conn.close()
+    
+#main()
