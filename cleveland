@@ -27,3 +27,17 @@ def get_paintings():
         return None
     
     return paintings
+
+# write data to json file
+def write_file(paintings):
+    # set path for a json file, make name of museum
+    file_path = 'Cleveland_cache.json'
+    
+    # open file in write mode
+    file = open(file_path, "w")
+    
+    # dump json data into file, indent for readability
+    json.dump(paintings, file, indent=4)
+    
+    # returns nothing
+    return None
