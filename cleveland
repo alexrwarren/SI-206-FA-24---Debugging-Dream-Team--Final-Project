@@ -60,3 +60,10 @@ def set_up_database(database_name):
     conn = sqlite3.connect(path + "/" + database_name)
     cur = conn.cursor()
     return cur, conn
+
+# set up the Cleveland table
+def create_Cleveland_table(paintings, cur, conn):
+    # create table if it doesn't exist (change name of table depending on museum name)
+    # includes id_key, title, creation_year, main_artist, gender (for Met)
+    cur.execute("CREATE TABLE IF NOT EXISTS Cleveland (id_key INTEGER PRIMARY KEY, title TEXT UNIQUE, creation_year INTEGER, main_artist TEXT)")
+    return None
