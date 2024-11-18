@@ -1,0 +1,29 @@
+import re
+import os
+import json
+import requests
+import sqlite3
+
+# get 120 paintings from API
+def get_paintings():
+    # set url
+    url = "https://openaccess-api.clevelandart.org/api/artworks"
+    
+    # set parameters to search for
+    # must search for only paintings and only created after 1800 (found in API documentation, varies by museum)
+    params = {'type': 'Painting', 'created_after': 1860, 'limit': 125}
+    
+    # initializes empty list for paintings
+    paintings = []
+    
+    # sends request to API, collects data for 120 paintings from API
+    # return list of paintings
+    response = requests.get(url, params=params)
+    
+    if response.status_code == 200:
+        data = response.json()  
+        paintings.extend(data['data'])
+    else:
+        return None
+    
+    return paintings
