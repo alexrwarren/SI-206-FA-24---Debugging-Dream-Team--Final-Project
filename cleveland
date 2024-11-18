@@ -5,6 +5,7 @@ import requests
 import sqlite3
 
 # get 120 paintings from API
+# all data at once
 def get_paintings():
     # set url
     url = "https://openaccess-api.clevelandart.org/api/artworks"
