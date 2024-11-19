@@ -5,20 +5,20 @@ import requests
 import sqlite3
 import random
 
-# get 1000 paintings from API
-# all data at once
+# get 25 paintings from API
 def get_paintings():
     # set url
     url = "https://openaccess-api.clevelandart.org/api/artworks"
     
     # set parameters to search for
-    # must search for only paintings and only created after 1860 (found in API documentation, varies by museum)
+    # must search for only paintings and only created after 1900 (found in API documentation, varies by museum)
+    # skip value is determined based on the total number of items in the API minus 25, so make sure you run the API request w/o a limit first, see the total number of matches, and calculate the skip 
     params = {'type': 'Painting', 'created_after': 1900, 'limit': 25, 'skip': random.randint(0, 798)}
     
     # initializes empty list for paintings
     paintings = []
     
-    # sends request to API, collects data for 120 paintings from API
+    # sends request to API, collects data for 25 paintings from API
     # return list of paintings
     response = requests.get(url, params=params)
     
@@ -45,25 +45,30 @@ def create_Cleveland_table(cur, conn):
     cur.execute("CREATE TABLE IF NOT EXISTS Cleveland (id_key INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT UNIQUE, creation_year INTEGER, main_artist TEXT UNIQUE)")
     return None
 
+# insert API data into the database
 def insert_paintings_into_Cleveland(paintings, cur, conn):
     
     # keeps track of paintings inserted into the table
     new_paintings = []
     
+    # go through each painting / 25
     for painting in paintings:
         # get the title (varies depending on json setup for each API)
+        # if title field empty, insert NULL
         if painting['title']:
             title = re.findall(r'([,\.\w\d\s\'\"-]+)[(]?', painting['title'])[0]
         else:
             title = None
         
         # get the creation_date (varies depending on json setup for each API)
+        # if empty -> NULL
         if painting['creation_date_latest']:
             creation_date = painting['creation_date_latest']
         else:
             creation_date = None
         
         # get main artist name (varies depending on json setup for each API)
+        # if empty -> NULL
         if painting['creators']:
             main_artist = re.findall(r'[\w\s-]+', painting['creators'][0]['description'])[0].strip()
         else:
@@ -72,31 +77,45 @@ def insert_paintings_into_Cleveland(paintings, cur, conn):
         # insert the data into the respective data table (change name of data table depending on museum)
         cur.execute("INSERT OR IGNORE INTO Cleveland (title, creation_year, main_artist) VALUES (?, ?, ?)", (title, creation_date, main_artist))
 
+        # if the row was inserted into the table, append painting to the new_painting list
+        # print that the painting and artist have been added
         if cur.rowcount > 0:
         # add painting to list to keep track of new paintings added, but only if inserted
             new_paintings.append(painting)
             print(f"added painting title: '{title}' with artist '{main_artist}' to database")
+       
+        # if insert was ignored, state reason for ignoring
+        # usually the painting will be ignored because another artist's painting is in the db
+        # we can't have duplicate string data in the database, so I made sure that artist names are unique and repeat artists are ignored
         else:
             print(f"painting title: '{title}' already in database or artist '{main_artist} already in database")
         
+    
     print(f'added {len(new_paintings)} new paintings to database')
+    
     # commit changes and return new_paintings
     conn.commit()
     return new_paintings
 
 def main():
+    # make the db, make the table
     cur, conn = set_up_database("Cleveland.db")
     create_Cleveland_table(cur, conn)
 
+    # print total number of paintings in db right now
     cur.execute("SELECT COUNT(*) FROM Cleveland")
     paintings_inserted = cur.fetchone()[0]
     print("current painting count: " + str(paintings_inserted))
     
+    # call API to get new paintings and insert them into the db
     insert_paintings_into_Cleveland(get_paintings(), cur, conn)
     
+    # print total number of paintings in db after calling API
     cur.execute("SELECT COUNT(*) FROM Cleveland")
     paintings_inserted = cur.fetchone()[0]
     print("new painting count: " + str(paintings_inserted))
     conn.close()
     
+
+#run this code multiple times to gather > 100 paintings
 main()
