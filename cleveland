@@ -4,14 +4,14 @@ import json
 import requests
 import sqlite3
 
-# get 120 paintings from API
+# get 125 paintings from API
 # all data at once
 def get_paintings():
     # set url
     url = "https://openaccess-api.clevelandart.org/api/artworks"
     
     # set parameters to search for
-    # must search for only paintings and only created after 1800 (found in API documentation, varies by museum)
+    # must search for only paintings and only created after 1860 (found in API documentation, varies by museum)
     params = {'type': 'Painting', 'created_after': 1860, 'limit': 125}
     
     # initializes empty list for paintings
@@ -29,31 +29,6 @@ def get_paintings():
     
     return paintings
 
-# write data to json file
-def write_file(paintings):
-    # set path for a json file, make name of museum
-    file_path = 'Cleveland_cache.json'
-    
-    # open file in write mode
-    file = open(file_path, "w")
-    
-    # dump json data into file, indent for readability
-    json.dump(paintings, file, indent=4)
-    
-    # returns nothing
-    return None
-
-# read json data into list of dictionaries
-def read_data_from_file(file_name):
-    
-    # set path for file, open and read file contents, load in and return json file data
-    full_path = os.path.join(os.path.dirname(__file__), file_name)
-    f = open(full_path)
-    data = f.read()
-    f.close()
-    json_data = json.loads(data)
-    return json_data
-
 # set up the database
 def set_up_database(database_name):
     # set path, create conn and cur and return them
@@ -63,7 +38,7 @@ def set_up_database(database_name):
     return cur, conn
 
 # set up the Cleveland table
-def create_Cleveland_table(paintings, cur, conn):
+def create_Cleveland_table(cur, conn):
     # create table if it doesn't exist (change name of table depending on museum name)
     # includes id_key, title, creation_year, main_artist, gender (for Met)
     cur.execute("CREATE TABLE IF NOT EXISTS Cleveland (id_key INTEGER PRIMARY KEY, title TEXT UNIQUE, creation_year INTEGER, main_artist TEXT)")
@@ -77,13 +52,12 @@ def insert_paintings_into_Cleveland(paintings, cur, conn):
     # get highest id number to avoid duplicates
     cur.execute("SELECT MAX(id_key) FROM Cleveland")
     current_id_key = cur.fetchone()[0]
+    
     if not current_id_key:
         # depends on museum, if Met = 119 and if Chicago = 239
-        current_id_key = -1
+        current_id_key = 0
     
-    for painting in paintings:
-        # increment id_key value to start at the right number (0, 120, or 240)
-        current_id_key += 1
+    for painting in paintings[current_id_key:current_id_key+25]:
         
         # get the title (varies depending on json setup for each API)
         title = re.findall(r'([,\.\w\d\s\'\"-]+)[(]?', painting['title'])[0]
@@ -99,32 +73,25 @@ def insert_paintings_into_Cleveland(paintings, cur, conn):
 
         # add painting to list to keep track of new paintings added
         new_paintings.append(painting)
+        
+        # increment id_key value to increase by 1
+        current_id_key += 1
+        
+        if len(new_paintings) == 25:
+            break
     # commit changes and return new_paintings
     conn.commit()
     return new_paintings
 
 def main():
-    paintings_lst = get_paintings() 
-    write_file(paintings_lst)
-    json_data = read_data_from_file("Cleveland_cache.json")
     cur, conn = set_up_database("Cleveland.db")
-    create_Cleveland_table(json_data, cur, conn)
+    create_Cleveland_table(cur, conn)
     
     cur.execute("SELECT COUNT(*) FROM Cleveland")
     paintings_inserted = cur.fetchone()[0]
     print("current painting count: " + str(paintings_inserted))
     
-    
-    while paintings_inserted < 125:
-        batch_size = min(25, 125 - paintings_inserted)
-        batch_of_paintings = paintings_lst[paintings_inserted:paintings_inserted + batch_size]
-        new_paintings = insert_paintings_into_Cleveland(batch_of_paintings, cur, conn)
-        paintings_inserted += len(new_paintings)
-        print(f"{len(new_paintings)} paintings inserted, total inserted: {paintings_inserted}")
-    
-    if paintings_inserted == 125:
-        print("done!")
-        
+    insert_paintings_into_Cleveland(get_paintings(), cur, conn)
     conn.close()
     
-#main()
+main()
