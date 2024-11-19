@@ -90,6 +90,10 @@ def insert_paintings_into_Cleveland(paintings, cur, conn):
         else:
             print(f"painting title: '{title}' already in database or artist '{main_artist} already in database")
         
+        # stop incrementing if number of newly inserted paintings reaches 25
+        # this is an extra precaution in case the limit on the API request is changed to be larger than 25
+        if len(new_paintings) == 25:
+            break
     
     print(f'added {len(new_paintings)} new paintings to database')
     
