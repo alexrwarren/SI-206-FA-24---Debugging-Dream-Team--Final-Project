@@ -1,0 +1,171 @@
+import re
+import os
+import json
+import requests
+import sqlite3
+import random
+
+# get 25 (or however many) paintings from API
+def get_paintings(limit=25):
+    # set url
+    url = "https://openaccess-api.clevelandart.org/api/artworks"
+    
+    # set parameters to search for
+    # must search for only paintings and only created after 1900 (found in API documentation, varies by museum)
+    # skip value is determined based on the total number of items in the API minus 25, so make sure you run the API request w/o a limit first, see the total number of matches (in this case, 823), and calculate the skip 
+    params = {'type': 'Painting', 'created_after': 1900, 'limit': limit, 'skip': random.randint(0, 823-limit)}
+    
+    # initializes empty list for paintings
+    paintings = []
+    
+    # sends request to API, collects data for 25 paintings from API
+    # return list of paintings
+    response = requests.get(url, params=params)
+    
+    if response.status_code == 200:
+        data = response.json()  
+        paintings.extend(data['data'])
+    else:
+        return None
+    
+    return paintings
+
+# set up the database
+def set_up_database(database_name):
+    # set path, create conn and cur and return them
+    path = os.path.dirname(os.path.abspath(__file__))
+    conn = sqlite3.connect(path + "/" + database_name)
+    cur = conn.cursor()
+    return cur, conn
+
+# set up the Cleveland table (rename function to match museum name)
+def create_Cleveland_table(cur, conn):
+    # create table if it doesn't exist (change name of table depending on museum name)
+    # includes id_key, title, creation_year, main_artist, gender_id (only for Met, should be an integer with 1 for female, 0 for male), department (this is only relevant for Cleveland, do not include this column if not Cleveland))
+    cur.execute("CREATE TABLE IF NOT EXISTS Cleveland (id_key INTEGER PRIMARY KEY, title TEXT UNIQUE, creation_year INTEGER, artist_id INTEGER, department_id INTEGER)")
+    return None
+
+def create_Cleveland_Artist_table(cur, conn):
+    a_list = []
+    for painting in get_paintings(823):
+        if painting['creators']:
+            artist = re.findall(r'[\.\w\s-]+', painting['creators'][0]['description'])[0].strip()
+            if artist not in a_list:
+                a_list.append(artist)
+            
+    # create table if it doesn't exist (change name of table depending on museum name)
+    # includes id, artist
+    cur.execute("CREATE TABLE IF NOT EXISTS Cleveland_Artists (id INTEGER PRIMARY KEY, artist TEXT UNIQUE)")
+    for i in range(len(a_list)):
+        cur.execute("INSERT OR IGNORE INTO Cleveland_Artists (id, artist) VALUES (?, ?)", (i, a_list[i]))
+    conn.commit()
+    return None
+        
+#### IGNORE THIS ENTRE CODE SECTION IF NOT CLEVELAND API ####
+def create_Cleveland_Departments_table(cur, conn):
+    d_list = []
+    for painting in get_paintings(823):
+        department = painting["department"]
+        if department not in d_list:
+            d_list.append(department)
+    # create table if doesn't exist
+    # includes id and department name
+    cur.execute("CREATE TABLE IF NOT EXISTS Cleveland_Departments (id INTEGER PRIMARY KEY, department TEXT UNIQUE)")
+    for i in range(len(d_list)):
+        cur.execute("INSERT OR IGNORE INTO Cleveland_Departments (id, department) VALUES (?,?)", (i, d_list[i]))
+    conn.commit()
+    return None
+####                             ####
+
+# insert API data into the database
+def insert_paintings_into_Cleveland(paintings, cur, conn):
+    
+    # keeps track of paintings inserted into the table
+    new_paintings = []
+    
+    # go through each painting / 25
+    for painting in paintings:
+        # get the title (varies depending on json setup for each API)
+        # if title field empty, insert NULL
+        if painting['title']:
+            title = re.findall(r'([,\.\w\d\s\'\"-]+)[(]?', painting['title'])[0].strip()
+        else:
+            title = None
+        
+        # get the creation_date (varies depending on json setup for each API)
+        # if empty -> NULL
+        if painting['creation_date_latest']:
+            creation_date = painting['creation_date_latest']
+        else:
+            creation_date = None
+        
+        # get main artist id (varies depending on json setup for each API)
+        # if empty -> NULL
+        if painting['creators']:
+            cur.execute("SELECT id FROM Cleveland_Artists WHERE artist = ?", (re.findall(r'[\.\w\s-]+', painting['creators'][0]['description'])[0].strip(),))
+            artist_id = cur.fetchone()[0]
+        else:
+            artist_id = None
+        
+        #### DISCLUDE CODE FOR ALL APIS BUT CLEVELAND API ###
+        
+        if painting['department']:
+            cur.execute("SELECT id FROM Cleveland_Departments WHERE department = ?", (painting['department'],))
+            department_id = cur.fetchone()[0]
+        else:
+            department_id = None
+            
+        ####                            ####
+    
+        # insert the data into the respective data table (change name of data table depending on museum)
+        cur.execute("INSERT OR IGNORE INTO Cleveland (title, creation_year, artist_id, department_id) VALUES (?, ?, ?, ?)", (title, creation_date, artist_id, department_id))
+
+        # if the row was inserted into the table, append painting to the new_painting list
+        # print that the painting and artist have been added
+        if cur.rowcount > 0:
+        # add painting to list to keep track of new paintings added, but only if inserted
+            new_paintings.append(painting)
+            print(f"added painting title: '{title}' to database")
+       
+        # if insert was ignored, state reason for ignoring
+        # usually the painting will be ignored because another artist's painting is in the db
+        # we can't have duplicate string data in the database, so I made sure that artist names are unique and repeat artists are ignored
+        else:
+            print(f"painting title: '{title}' already in database")
+        
+        # stop incrementing if number of newly inserted paintings reaches 25
+        # this is an extra precaution in case the limit on the API request is changed to be larger than 25
+        if len(new_paintings) == 25:
+            break
+    
+    print(f'added {len(new_paintings)} new paintings to database')
+    
+    # commit changes and return new_paintings
+    conn.commit()
+    return new_paintings
+
+def main():
+    # make the db, make the table
+    cur, conn = set_up_database("Cleveland.db")
+    create_Cleveland_Departments_table(cur, conn)
+    create_Cleveland_Artist_table(cur, conn)
+    create_Cleveland_table(cur, conn)
+    
+
+    # print total number of paintings in db right now
+    cur.execute("SELECT COUNT(*) FROM Cleveland")
+    paintings_inserted = cur.fetchone()[0]
+    print("current painting count: " + str(paintings_inserted))
+    
+    # call API to get new paintings and insert them into the db
+    insert_paintings_into_Cleveland(get_paintings(), cur, conn)
+    
+    # print total number of paintings in db after calling API
+    cur.execute("SELECT COUNT(*) FROM Cleveland")
+    paintings_inserted = cur.fetchone()[0]
+    print("new painting count: " + str(paintings_inserted))
+    conn.close()
+    
+
+#run this code multiple times to gather > 100 paintings
+main()
