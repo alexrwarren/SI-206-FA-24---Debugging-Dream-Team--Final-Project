@@ -32,3 +32,12 @@ def create_database(databasename):
     conn = sqlite3.connect(path + '/' + databasename)
     cur = conn.cursor()
     return cur, conn
+
+def create_chicago_table(cur, conn):
+    cur.execute('''
+                CREATE TABLE IF NOT EXISTS Chicago 
+                (id_key INTEGER PRIMARY KEY, 
+                title TEXT UNIQUE, 
+                creation_year INTEGER,
+                width_cm INTEGER)
+                ''')
