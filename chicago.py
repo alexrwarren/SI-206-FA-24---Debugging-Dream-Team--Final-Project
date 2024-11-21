@@ -92,3 +92,27 @@ def insert_paintings_into_chicago(paintings, cur, conn):
 
     conn.commit()
     return new_paintings
+
+def main():
+    # make the db, make the table
+    cur, conn = create_database("Chicago.db")
+    create_chicago_table(cur, conn)
+    
+
+    # print total number of paintings in db right now
+    cur.execute("SELECT COUNT(*) FROM Chicago")
+    paintings_inserted = cur.fetchone()[0]
+    print("current painting count: " + str(paintings_inserted))
+    
+    # call API to get new paintings and insert them into the db
+    insert_paintings_into_chicago(get_paintings(), cur, conn)
+    
+    # print total number of paintings in db after calling API
+    cur.execute("SELECT COUNT(*) FROM Chicago")
+    paintings_inserted = cur.fetchone()[0]
+    print("new painting count: " + str(paintings_inserted))
+    conn.close()
+    
+
+#run this code multiple times to gather > 100 paintings
+main()
