@@ -41,3 +41,54 @@ def create_chicago_table(cur, conn):
                 creation_year INTEGER,
                 width_cm INTEGER)
                 ''')
+    
+def insert_paintings_into_chicago(paintings, cur, conn):
+    
+    # keeps track of paintings inserted into the table
+    new_paintings = []
+    
+    # go through each painting
+    for painting in paintings:
+        
+        #title
+        if painting['title']:
+            title = painting['title']
+        else:
+            title = None
+        
+        #date end
+        if painting['date_end']:
+            creation_date = painting['date_end']
+        else:
+            creation_date = None
+        
+        #width
+        if painting['dimensions_detail'][0]['width']:
+            width_cm = painting['dimensions_detail'][0]['width']
+        else:
+            width_cm = None
+
+        #add data into columns in database
+        cur.execute('''
+                    INSERT OR IGNORE INTO Chicago
+                    (title, creation_year, width_cm)
+                    VALUES (?,?,?)
+                    ''',
+                    (title, creation_date, width_cm)
+                    )
+        
+        # add painting to list to keep track of new paintings added, but only if inserted
+        if cur.rowcount > 0:
+                new_paintings.append(painting)
+                print(f"added painting title: '{title}' to database")
+        else:
+            print(f"painting '{title}' is already in database")
+
+        #ensuring only 25 are added at a time
+        if len(new_paintings) == 25:
+            break
+
+    print(f"Added {len(new_paintings)} new paintings to database")
+
+    conn.commit()
+    return new_paintings
