@@ -26,3 +26,9 @@ def get_paintings():
         return 'Fail'
     
     return paintings
+
+def create_database(databasename):
+    path = os.path.dirname(os.path.abspath(__file__))
+    conn = sqlite3.connect(path + '/' + databasename)
+    cur = conn.cursor()
+    return cur, conn
