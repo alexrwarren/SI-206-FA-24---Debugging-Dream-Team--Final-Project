@@ -1,0 +1,29 @@
+import re
+import os
+import json
+import requests
+import sqlite3
+import random
+
+def open_database(db_name):
+    path = os.path.dirname(os.path.abspath(__file__))
+    conn = sqlite3.connect(path + "/" + db_name)
+    cur = conn.cursor()
+    return cur, conn
+
+def get_title_length_averages(cur, conn, table_names):
+    path = os.path.dirname(os.path.abspath(__file__))
+    average_lengths = []
+    for table in table_names:
+        cur.execute(f"SELECT title FROM {table}")
+        titles = cur.fetchall()
+        title_lengths = [len(title[0].split()) for title in titles]
+        average = sum(title_lengths) / len(title_lengths)
+        average_lengths.append(round(average, 2)) 
+    overall_average = round(sum(average_lengths) / len(table_names), 2)
+    return overall_average, average_lengths
+
+
+cur, conn = open_database('Museums.db')
+print(get_title_length_averages(cur, conn, ['Cleveland', 'Harvard']))
+
