@@ -23,7 +23,13 @@ def get_title_length_averages(cur, conn, table_names):
     overall_average = round(sum(average_lengths) / len(table_names), 2)
     return overall_average, average_lengths
 
-
+def write_lengths_to_txt_file(table_names, overall_average, average_lengths):
+    file = open("title_lengths.txt", "w")
+    for i in range(len(table_names)):
+        file.write(f"Average painting title length for {table_names[i]}: {average_lengths[i]}\n")
+    file.write(f"Average painting title length for all museums: {overall_average}")
+    
+table_names = ['Cleveland', 'Harvard']
 cur, conn = open_database('Museums.db')
-print(get_title_length_averages(cur, conn, ['Cleveland', 'Harvard']))
-
+overall_average, average_lengths = get_title_length_averages(cur, conn, table_names)
+write_lengths_to_txt_file(table_names, overall_average, average_lengths)
