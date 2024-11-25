@@ -4,6 +4,8 @@ import json
 import requests
 import sqlite3
 import random
+import matplotlib.pyplot as plt
+
 
 def open_database(db_name):
     path = os.path.dirname(os.path.abspath(__file__))
@@ -29,7 +31,46 @@ def write_lengths_to_txt_file(table_names, overall_average, average_lengths):
         file.write(f"Average painting title length for {table_names[i]}: {average_lengths[i]}\n")
     file.write(f"Average painting title length for all museums: {overall_average}")
     
-table_names = ['Cleveland', 'Harvard']
-cur, conn = open_database('Museums.db')
-overall_average, average_lengths = get_title_length_averages(cur, conn, table_names)
-write_lengths_to_txt_file(table_names, overall_average, average_lengths)
+
+def visualize_title_lengths():
+    museums = ['The Cleveland Museum of Art', 'Harvard Art Museums', "All Museums"]
+    average_lengths = []
+    try:
+        file = open("title_lengths.txt")
+        text = file.read()
+        if not file:
+            print("file no exist")
+        cleveland_length = re.findall(r"Cleveland: ([\d\.]+)", text)[0]
+        #print(cleveland_length)
+        average_lengths.append(float(cleveland_length))
+        
+        harvard_length = re.findall(r"Harvard: ([\d\.]+)", text)[0]
+        #print(harvard_length)
+        average_lengths.append(float(harvard_length))
+        
+        all_length = re.findall(r"all.+: ([\d\.]+)", text)[0]
+        #print(all_length)
+        average_lengths.append(float(all_length)) 
+    except:
+        return "File doesn't exist."
+    
+
+# Create the bar chart
+    plt.bar(museums, average_lengths, color=['blue', 'red', 'black'])
+
+# Add titles and labels
+    plt.title('Average Painting Title Length By Museum')
+    plt.xlabel('Museum')
+    plt.ylabel('Average Title Length (words)')
+
+# Show the plot
+    plt.show()
+
+def main():
+    table_names = ['Cleveland', 'Harvard']
+    cur, conn = open_database('Museums.db')
+    overall_average, average_lengths = get_title_length_averages(cur, conn, table_names)
+    write_lengths_to_txt_file(table_names, overall_average, average_lengths)
+    visualize_title_lengths()
+
+main()
