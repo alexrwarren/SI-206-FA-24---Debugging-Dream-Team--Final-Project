@@ -11,7 +11,7 @@ def get_paintings(limit=25):
     url = "https://openaccess-api.clevelandart.org/api/artworks"
     
     # set parameters to search for
-    # must search for only paintings and only created after 1900 (found in API documentation, varies by museum)
+    # must search for only paintings and only created after 1800 (found in API documentation, varies by museum)
     # skip value is determined based on the total number of items in the API minus 25, so make sure you run the API request w/o a limit first, see the total number of matches (in this case, 823), and calculate the skip 
     params = {'type': 'Painting', 'created_after': 1800, 'limit': limit, 'skip': random.randint(0, 823-limit)}
     
