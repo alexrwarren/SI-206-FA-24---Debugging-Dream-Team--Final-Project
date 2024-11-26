@@ -15,21 +15,29 @@ def open_database(db_name):
 
 def get_title_length_averages(cur, conn, table_names):
     path = os.path.dirname(os.path.abspath(__file__))
-    average_lengths = []
+    average_lengths_words = []
+    average_lengths_chars = []
     for table in table_names:
         cur.execute(f"SELECT title FROM {table}")
         titles = cur.fetchall()
-        title_lengths = [len(title[0].split()) for title in titles]
-        average = sum(title_lengths) / len(title_lengths)
-        average_lengths.append(round(average, 2)) 
-    overall_average = round(sum(average_lengths) / len(table_names), 2)
-    return overall_average, average_lengths
+        title_lengths_words = [len(title[0].split()) for title in titles]
+        average_words = sum(title_lengths_words) / len(title_lengths_words)
+        average_lengths_words.append(round(average_words, 2)) 
+        
+        title_lengths_chars = [len(title[0]) for title in titles]
+        average_chars = sum(title_lengths_chars) / len(title_lengths_chars)
+        average_lengths_chars.append(round(average_words, 2))
+    
+    overall_average_chars = round(sum(average_lengths_chars) / len(table_names), 2)
+    overall_average_words = round(sum(average_lengths_words) / len(table_names), 2)
+    
+    return overall_average_words, average_lengths_words, overall_average_chars, overall_average_words
 
 def write_lengths_to_txt_file(table_names, overall_average, average_lengths):
     file = open("title_lengths.txt", "w")
     for i in range(len(table_names)):
-        file.write(f"Average painting title length for {table_names[i]}: {average_lengths[i]}\n")
-    file.write(f"Average painting title length for all museums: {overall_average}")
+        file.write(f"Average painting title length (in words) for {table_names[i]}: {average_lengths[i]}\n")
+    file.write(f"Average painting title length (in words) for all museums: {overall_average}")
     
 
 def visualize_title_lengths():
@@ -69,8 +77,10 @@ def visualize_title_lengths():
 def main():
     table_names = ['Cleveland', 'Harvard']
     cur, conn = open_database('Museums.db')
-    overall_average, average_lengths = get_title_length_averages(cur, conn, table_names)
-    write_lengths_to_txt_file(table_names, overall_average, average_lengths)
+    overall_average_words, average_lengths_words, overall_average_chars, overall_average_words = get_title_length_averages(cur, conn, table_names)
+   
+    # fix this function to write both chars and words lengths
+    write_lengths_to_txt_file(table_names, overall_average_words, average_lengths_words)
     visualize_title_lengths()
 
 main()
