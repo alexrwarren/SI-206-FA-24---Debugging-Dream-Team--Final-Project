@@ -8,24 +8,21 @@ import random
 #25 paintings
 def get_paintings(page_lst):
 
-    #limit = 25
-    #page = random.randint(0, 100)
-    #url =  f"https://api.artic.edu/api/v1/artworks?page={page}&limit={limit}"
-    page = random.randint(0, 6)
-    if page not in page_lst:
-        url =  "https://api.artic.edu/api/v1/artworks"
-        params = {'page': page, 'limit': 100}
-        print(page)
-    else:
-        None
+    page = random.randint(0,100)
+
+    key = 'c3ba3791-48c2-42a6-b592-6b8b7b26aebd'
+    url =  f"https://api.harvardartmuseums.org/object?apikey={key}"
+
+    params = {'size': 25, 'classification': 'Paintings', 'page': page}
 
     paintings = []
 
     response = requests.get(url, params=params)
 
     if response.status_code == 200:
+        print('yes')
         data = response.json()
-        paintings.extend(data['data'])
+        paintings.extend(data['records'])
     else:
         return 'Fail'
     
@@ -37,14 +34,15 @@ def create_database(databasename):
     cur = conn.cursor()
     return cur, conn
 
-def create_chicago_table(cur, conn):
+def create_harvard_table(cur, conn):
     cur.execute('''
-                CREATE TABLE IF NOT EXISTS Chicago 
+                CREATE TABLE IF NOT EXISTS Harvard 
                 (id_key INTEGER PRIMARY KEY, 
                 title TEXT UNIQUE, 
                 creation_year INTEGER,
-                width_cm INTEGER)
+                height_cm FLOAT)
                 ''')
+    return None
     
 def insert_paintings_into_chicago(paintings, cur, conn):
     
