@@ -6,7 +6,7 @@ import sqlite3
 import random
 
 #25 paintings
-def get_paintings(page_lst):
+def get_paintings():
 
     page = random.randint(0,100)
 
@@ -44,85 +44,74 @@ def create_harvard_table(cur, conn):
                 ''')
     return None
     
-def insert_paintings_into_chicago(paintings, cur, conn):
+def insert_paintings_into_harvard(paintings, cur, conn):
     
     # keeps track of paintings inserted into the table
     new_paintings = []
     
     # go through each painting
     for painting in paintings:
-        if painting['artwork_type_title'] == 'Painting':
-            print('this is a painting')
+        #print(f'this work is in classiciation: {painting['classification']}')
+        if painting['title']:
+            title = re.findall(r"[^(]+", painting['title'])[0]
+        else:
+            title = None
             
-            #title
-            if painting['title']:
-                title = painting['title']
+        if painting['dateend']:
+            if painting['dateend'] >= 1800:
+                creation_year = painting['dateend'] 
             else:
-                title = None
+                continue
+        else:
+            continue
+        
+        if painting['dimensions']:
+            #print(painting['dimensions'])
+            height_cm = re.findall(r'\d+[.]?\d+', painting['dimensions'])[0]
+            #print(height_cm)
+            height_cm = float(height_cm)
+        else:
+            height_cm = None
             
-            #date end
-            if painting['date_end']:
-                creation_date = painting['date_end']
-            else:
-                creation_date = None
-            
-            #width
-            if painting['dimensions_detail']:
-                if painting['dimensions_detail'][0].get('width'):
-                    width_cm = painting['dimensions_detail'][0]['width']
-                else:
-                    width_cm = None
-            else:
-                width_cm = None
-
-            #add data into columns in database
-            cur.execute('''
-                        INSERT OR IGNORE INTO Chicago
-                        (title, creation_year, width_cm)
+        cur.execute('''
+                        INSERT OR IGNORE INTO Harvard
+                        (title, creation_year, height_cm)
                         VALUES (?,?,?)
                         ''',
-                        (title, creation_date, width_cm)
+                        (title, creation_year, height_cm)
                         )
-            
-            # add painting to list to keep track of new paintings added, but only if inserted
-            if cur.rowcount > 0:
-                    new_paintings.append(painting)
-                    print(f"added painting title: '{title}' to database")
-            else:
-                print(f"painting '{title}' is already in database")
+        if cur.rowcount > 0:
+            new_paintings.append(painting)
+            print(f"added painting title: '{title}' to database")
+        else:
+            print(f"painting '{title}' is already in database")
 
-            #ensuring only 25 are added at a time
-            if len(new_paintings) == 25:
-                break
-
+        #ensuring only 25 are added at a time
+        if len(new_paintings) == 25:
+            break
     print(f"Added {len(new_paintings)} new paintings to database")
 
     conn.commit()
     return new_paintings
 
 def main():
-    page = random.randint(0, 6)
-    page_lst = []
-    
 
     # make the db, make the table
-    cur, conn = create_database("Chicago.db")
-    create_chicago_table(cur, conn)
+    cur, conn = create_database("Museums.db")
+    create_harvard_table(cur, conn)
 
     # print total number of paintings in db right now
-    cur.execute("SELECT COUNT(*) FROM Chicago")
+    cur.execute("SELECT COUNT(*) FROM Harvard")
     paintings_inserted = cur.fetchone()[0]
     print("current painting count: " + str(paintings_inserted))
     
     # call API to get new paintings and insert them into the db
-    insert_paintings_into_chicago(get_paintings(), cur, conn)
+    insert_paintings_into_harvard(get_paintings(), cur, conn)
     
     # print total number of paintings in db after calling API
-    cur.execute("SELECT COUNT(*) FROM Chicago")
+    cur.execute("SELECT COUNT(*) FROM Harvard")
     paintings_inserted = cur.fetchone()[0]
     print("new painting count: " + str(paintings_inserted))
     conn.close()
     
-
-#run this code multiple times to gather > 100 paintings
 main()
