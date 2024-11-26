@@ -6,7 +6,7 @@ import sqlite3
 import random
 
 # get 25 (or however many) paintings from API
-def get_paintings(limit=25):
+def get_paintings(limit=100):
     url = "https://collectionapi.metmuseum.org/public/collection/v1/search"
     
     # Set parameters to search for paintings only
@@ -44,11 +44,7 @@ def create_MET_table(cur, conn):
     CREATE TABLE IF NOT EXISTS MET (
         id_key INTEGER PRIMARY KEY,
         title TEXT UNIQUE,
-        country TEXT,
-        country_culture TEXT,
-        artist_nationality TEXT,
         creation_year INTEGER,
-        artist_name TEXT,
         gender_id INTEGER
     )
     """)
