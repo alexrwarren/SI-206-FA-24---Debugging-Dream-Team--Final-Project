@@ -15,72 +15,93 @@ def open_database(db_name):
 
 def get_title_length_averages(cur, conn, table_names):
     path = os.path.dirname(os.path.abspath(__file__))
-    average_lengths_words = []
-    average_lengths_chars = []
+    average_lengths_in_words = []
+    average_lengths_in_chars = []
     for table in table_names:
         cur.execute(f"SELECT title FROM {table}")
         titles = cur.fetchall()
-        title_lengths_words = [len(title[0].split()) for title in titles]
-        average_words = sum(title_lengths_words) / len(title_lengths_words)
-        average_lengths_words.append(round(average_words, 2)) 
         
-        title_lengths_chars = [len(title[0]) for title in titles]
-        average_chars = sum(title_lengths_chars) / len(title_lengths_chars)
-        average_lengths_chars.append(round(average_words, 2))
+        title_lengths_in_words = [len(title[0].split()) for title in titles]
+        average_title_length_in_words = sum(title_lengths_in_words) / len(title_lengths_in_words)
+        average_lengths_in_words.append(round(average_title_length_in_words, 2)) 
+        
+        title_lengths_in_chars = [len(title[0]) for title in titles]
+        average_title_length_in_chars = sum(title_lengths_in_chars) / len(title_lengths_in_chars)
+        average_lengths_in_chars.append(round(average_title_length_in_chars, 2))
     
-    overall_average_chars = round(sum(average_lengths_chars) / len(table_names), 2)
-    overall_average_words = round(sum(average_lengths_words) / len(table_names), 2)
+    overall_average_chars = round(sum(average_lengths_in_chars) / len(table_names), 2)
+    overall_average_words = round(sum(average_lengths_in_words) / len(table_names), 2)
     
-    return overall_average_words, average_lengths_words, overall_average_chars, overall_average_words
+    return overall_average_words, average_lengths_in_words, overall_average_chars, average_lengths_in_chars
 
-def write_lengths_to_txt_file(table_names, overall_average, average_lengths):
+def write_lengths_to_txt_file(table_names, overall_average_words, average_lengths_in_words, overall_average_chars, average_lengths_in_chars):
     file = open("title_lengths.txt", "w")
     for i in range(len(table_names)):
-        file.write(f"Average painting title length (in words) for {table_names[i]}: {average_lengths[i]}\n")
-    file.write(f"Average painting title length (in words) for all museums: {overall_average}")
+        file.write(f"Average painting title length (in words) for {table_names[i]}: {average_lengths_in_words[i]}\n")
+        file.write(f"Average painting title length (in characters) for {table_names[i]}: {average_lengths_in_chars[i]}\n")
+    file.write(f"Average painting title length (in words) for all museums: {overall_average_words}\n")
+    file.write(f"Average painting title length (in characters) for all museums: {overall_average_chars}\n")
     
 
-def visualize_title_lengths():
-    museums = ['The Cleveland Museum of Art', 'Harvard Art Museums', "All Museums"]
-    average_lengths = []
+def visualize_title_lengths_words():
+    museums = ['Cleveland', 'Harvard', "The Met", "All Museums"]
+    average_lengths_words = []
+    average_lengths_chars = []
     try:
         file = open("title_lengths.txt")
         text = file.read()
         if not file:
             print("file no exist")
-        cleveland_length = re.findall(r"Cleveland: ([\d\.]+)", text)[0]
+        cleveland_length = re.findall(r"Cleveland: ([\d\.]+)", text)
         #print(cleveland_length)
-        average_lengths.append(float(cleveland_length))
+        average_lengths_words.append(float(cleveland_length[0]))
+        average_lengths_chars.append(float(cleveland_length[1]))
         
-        harvard_length = re.findall(r"Harvard: ([\d\.]+)", text)[0]
+        harvard_length = re.findall(r"Harvard: ([\d\.]+)", text)
         #print(harvard_length)
-        average_lengths.append(float(harvard_length))
+        average_lengths_words.append(float(harvard_length[0]))
+        average_lengths_chars.append(float(harvard_length[1]))
         
-        all_length = re.findall(r"all.+: ([\d\.]+)", text)[0]
+        met_length = re.findall(r"Met: ([\d\.]+)", text)
+        average_lengths_words.append(float(met_length[0]))
+        average_lengths_chars.append(float(met_length[1]))
+        
+        all_length = re.findall(r"all.+: ([\d\.]+)", text)
         #print(all_length)
-        average_lengths.append(float(all_length)) 
+        average_lengths_words.append(float(all_length[0])) 
+        average_lengths_chars.append(float(all_length[1]))
+        
     except:
         return "File doesn't exist."
     
 
-# Create the bar chart
-    plt.bar(museums, average_lengths, color=['blue', 'red', 'black'])
-
-# Add titles and labels
-    plt.title('Average Painting Title Length By Museum')
+#make bar chart
+    plt.figure(1, figsize=(12,6))
+    plt.title('Average Painting Title Length (Words) By Museum')
+    
+    plt.bar(museums, average_lengths_words, color=['blue', 'red', 'pink', 'black'])
     plt.xlabel('Museum')
-    plt.ylabel('Average Title Length (words)')
+    plt.ylabel('Average Title Length (Words)')
 
-# Show the plot
+    plt.figure(2, figsize=(12,6))
+    plt.title('Average Painting Title Length (Characters) By Museum')
+    plt.bar(museums, average_lengths_chars, color=['blue', 'red', 'pink', 'black'])
+    plt.xlabel('Museum')
+    plt.ylabel('Average Title Length (Characters)')
+
+    
+    
+
+#display the plot
     plt.show()
 
 def main():
-    table_names = ['Cleveland', 'Harvard']
+    table_names = ['Cleveland', 'Harvard', 'Met']
     cur, conn = open_database('Museums.db')
-    overall_average_words, average_lengths_words, overall_average_chars, overall_average_words = get_title_length_averages(cur, conn, table_names)
+    overall_average_words, average_lengths_in_words, overall_average_chars, average_lengths_in_chars = get_title_length_averages(cur, conn, table_names)
    
     # fix this function to write both chars and words lengths
-    write_lengths_to_txt_file(table_names, overall_average_words, average_lengths_words)
-    visualize_title_lengths()
+    write_lengths_to_txt_file(table_names, overall_average_words, average_lengths_in_words, overall_average_chars, average_lengths_in_chars)
+    visualize_title_lengths_words()
 
 main()
