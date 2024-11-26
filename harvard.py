@@ -53,7 +53,7 @@ def insert_paintings_into_harvard(paintings, cur, conn):
     for painting in paintings:
         #print(f'this work is in classiciation: {painting['classification']}')
         if painting['title']:
-            title = re.findall(r"[^(]+", painting['title'])[0]
+            title = re.findall(r"[^(]+", painting['title'])[0].strip()
         else:
             title = None
             
