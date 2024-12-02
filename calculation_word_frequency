@@ -1,0 +1,40 @@
+import re
+import os
+import sqlite3
+import matplotlib.pyplot as plt
+
+
+def open_database(db_name):
+    path = os.path.dirname(os.path.abspath(__file__))
+    conn = sqlite3.connect(path + "/" + db_name)
+    cur = conn.cursor()
+    return cur, conn
+
+def get_word_counts(cur, conn, table_names):
+    word_dictionary = {}
+    ignore_words = ['the', 'and', 'is', 'are', 'to', 'with', 'of', 'a', 'in', 'from', 'among', 'for', 'at', 'by', 'on']
+    path = os.path.dirname(os.path.abspath(__file__))
+    average_lengths_in_words = []
+    average_lengths_in_chars = []
+    for table in table_names:
+        cur.execute(f"SELECT title FROM {table}")
+        titles = cur.fetchall()
+        for title,  in titles:
+            title = title.split()
+            for word in title:
+                word = word.strip(". ,").lower()
+                if word not in word_dictionary:
+                    if word in ignore_words:
+                        continue
+                    word_dictionary[word] = 0
+                    #print(f"adding word {word} to dictionary")
+                word_dictionary[word] += 1
+                #print(f"increasing count for {word} by 1")
+    sorted_dict = sorted(word_dictionary.items(), key=lambda x: x[1])
+    print(sorted_dict)
+            
+            
+## NOTE TO SELF: NEED TO GO BACK INTO OTHER FILES AND CHANGE THEM SO THAT YOU PULL A MAX OF 200 FILES FOR EACH, SHOULD BE IN MAIN
+
+cur, conn = open_database('Museums.db')
+get_word_counts(cur, conn, ['Harvard', 'Cleveland', 'Met'])
